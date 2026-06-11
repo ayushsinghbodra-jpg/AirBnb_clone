@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
-const userSchema=mongoose.schema({
+const userSchema=mongoose.Schema({
     firstName : {
         type : String,
         required:[true,'First name is required'],
     },
     lastName : String,
     email : {
-        tupe : String,
+        type : String,
         unique : true,
         required : [true,'Email is required'],
     },

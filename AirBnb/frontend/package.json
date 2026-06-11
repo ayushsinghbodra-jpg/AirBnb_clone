@@ -1,0 +1,17 @@
+{
+  "name": "airbnb-clone-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for AirBnb Clone",
+  "scripts": {
+    "dev": "tailwindcss -i ./input.css -o ./public/output.css --watch",
+    "build": "tailwindcss -i ./input.css -o ./public/output.css",
+    "start": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "postcss": "^8.4.40",
+    "tailwindcss": "^3.4.7"
+  }
+}

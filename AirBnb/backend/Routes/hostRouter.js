@@ -1,7 +1,7 @@
 const express=require('express');
 const hostRouter= express.Router();
-const hostController = reqiuire('../Controllers/hostController');
-hostRouter.get('/add-home',hostController.getAddhome);
+const hostController = require('../Controllers/hostController');
+hostRouter.get('/add-home',hostController.getAddHome);
 hostRouter.post('/add-home',hostController.postAddHome);
 hostRouter.get('/host-home-list',hostController.getHostHomes);
 hostRouter.get('/edit-home/:homeId',hostController.getEditHome);

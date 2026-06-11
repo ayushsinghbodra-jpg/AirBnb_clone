@@ -1,6 +1,7 @@
 const Home= require('../models/home');
 const User=require('../models/user');
 exports.getIndex=(req,res,next)=>{
+    console.log('getIndex - isLoggedIn:', req.isLoggedIn, 'user:', req.session.user?.email, 'userType:', req.session.user?.userType);
     Home.find().then((registeredHomes)=>{
         res.render('store/index',{
             registeredHomes:registeredHomes,
@@ -9,12 +10,30 @@ exports.getIndex=(req,res,next)=>{
             isLoggedIn:req.isLoggedIn,
             user:req.session.user,
         });
+    }).catch((err)=>{
+        console.log('Error fetching homes:', err);
+        res.status(500).render('store/index',{
+            registeredHomes:[],
+            pageTitle:'AirBnb',
+            currentPage:'index',
+            isLoggedIn:req.isLoggedIn,
+            user:req.session.user,
+        });
     });
 };
-exports.getHomes=(res,req,next)=>{
+exports.getHomes=(req,res,next)=>{
     Home.find().then((registeredHomes)=>{
         res.render('store/home-list',{
             registeredHomes:registeredHomes,
+            pageTitle:'Homes List',
+            currentPage:'Home',
+            isLoggedIn:req.isLoggedIn, 
+            user:req.session.user,
+        });
+    }).catch((err)=>{
+        console.log('Error fetching homes:', err);
+        res.status(500).render('store/home-list',{
+            registeredHomes:[],
             pageTitle:'Homes List',
             currentPage:'Home',
             isLoggedIn:req.isLoggedIn, 
@@ -30,36 +49,109 @@ exports.getBookings=(req,res,next)=>{
         user:req.session.user,
     });
 };
+exports.getBookings=(req,res,next)=>{
+    res.render('store/bookings',{
+        pageTitle:'My Bookings',    
+        currentPage:'bookings',
+        isLoggedIn:req.isLoggedIn, 
+        user:req.session.user,
+    });
+};
+exports.getBookings=(req,res,next)=>{
+    res.render('store/bookings',{
+        pageTitle:'My Bookings',    
+        currentPage:'bookings',
+        isLoggedIn:req.isLoggedIn, 
+        user:req.session.user,
+    });
+};
+exports.getBookings=(req,res,next)=>{
+    res.render('store/bookings',{
+        pageTitle:'My Bookings',    
+        currentPage:'bookings',
+        isLoggedIn:req.isLoggedIn, 
+        user:req.session.user,
+    });
+};
+exports.getBookings=(req,res,next)=>{
+    res.render('store/bookings',{
+        pageTitle:'My Bookings',    
+        currentPage:'bookings',
+        isLoggedIn:req.isLoggedIn, 
+        user:req.session.user,
+    });
+};
+exports.getBookings=(req,res,next)=>{
+    res.render('store/bookings',{
+        pageTitle:'My Bookings',    
+        currentPage:'bookings',
+        isLoggedIn:req.isLoggedIn, 
+        user:req.session.user,
+    });
+};
 exports.getFavouritesList=async(req,res,next)=>{
-    const userId=req.session.user._id;
-    const user=await User.findById(userId).populate('favourites');
+    if(!req.user){
+        return res.redirect('/auth/login');
+    }
+    const user=await User.findById(req.user._id).populate('favourites');
     res.render('store/favourite-list',{
         favouriteHomes:user.favourites,
         pageTitle:'My Favourites',    
         currentPage:'favourites',   
         isLoggedIn:req.isLoggedIn, 
-        user:req.session.user,
+        user:req.user,
+        userType:res.locals.userType,
     });
 };
 exports.postAddToFavourite=async(req,res,next)=>{
-    const homeId=req.body.id;
-    const userId=req.session.user._id;
-    const user=await User.findById(userId);
-    if(!user.favourites.includes(homeId)){
-        user.favourites.push(homeId);
-        await user.save();
+    if(!req.user){
+        return res.redirect('/auth/login');
     }
-    res.redirect('/favourites');
+    try {
+        const homeId=req.body.id;
+        console.log('Adding favourite - homeId:', homeId, 'current favourites:', req.user.favourites);
+        if(!homeId){
+            return res.status(400).send('Home ID is required');
+        }
+        const user=req.user;
+        // Check if already in favourites using toString() for proper comparison
+        const exists = user.favourites.some(fav => fav.toString() === homeId);
+        if(!exists){
+            user.favourites.push(homeId);
+            await user.save();
+            console.log('Favourite added successfully');
+        } else {
+            console.log('Home already in favourites');
+        }
+        res.redirect('/favourites');
+    } catch (err) {
+        console.error('Error adding to favourites:', err);
+        res.status(500).send('Error adding to favourites');
+    }
 };
-exports.postremoveFromFavourites=async(req,rex,next)=>{
-    const userId=req.session.user._id;
-    const homeId=req.body.id;
-    const user=await User.findById(userId);
-    if(user.favourites.includes(homeId)){
-        user.favourites=user.favouries.filter(fav=>fav!=homeId);
-        await user.save();
+exports.postRemoveFromFavourite=async(req,res,next)=>{
+    if(!req.user){
+        return res.redirect('/auth/login');
     }
-    res.redirect('/favourites');
+    try {
+        const homeId=req.params.homeId;
+        console.log('Removing favourite - homeId:', homeId, 'user favourites:', req.user.favourites);
+        if(!homeId){
+            return res.status(400).send('Home ID is required');
+        }
+        const user=req.user;
+        // Convert favourites to string for comparison since homeId is a string
+        const index = user.favourites.findIndex(fav => fav.toString() === homeId);
+        if(index !== -1){
+            user.favourites.splice(index, 1);
+            await user.save();
+            console.log('Favourite removed successfully');
+        }
+        res.redirect('/favourites');
+    } catch (err) {
+        console.error('Error removing from favourites:', err);
+        res.status(500).send('Error removing from favourites');
+    }
 };
 exports.getHomeDetails = (req, res, next) => {
   const homeId = req.params.homeId;
@@ -73,7 +165,8 @@ exports.getHomeDetails = (req, res, next) => {
         pageTitle: "Home Detail",
         currentPage: "Home",
         isLoggedIn: req.isLoggedIn, 
-        user: req.session.user,
+        user: req.user,
+        userType: res.locals.userType,
       });
     }
   });

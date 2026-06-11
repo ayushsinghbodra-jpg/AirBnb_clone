@@ -16,7 +16,7 @@ const homeSchema=mongoose.Schema({
         type : Number,
         required : true,
     },
-    photos : String,
+    photo : String,
     description : String,
 });
 module.exports=mongoose.model('Home', homeSchema);
