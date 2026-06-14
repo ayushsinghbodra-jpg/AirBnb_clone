@@ -1,6 +1,7 @@
 const Home = require('../models/home');
 const fs = require('fs');
 const path = require('path');
+const uploadImage = require('../utils/uploadImage.js');
 exports.getAddHome=(req,res,next)=>{
     res.render('host/edit-home',{
         pageTitle:'Add Home To Airbnb',
@@ -41,27 +42,46 @@ exports.getHostHomes=(req,res,next)=>{
         });
     });
 };
-exports.postAddHome=(req,res,next)=>{
-    const {houseName,price,location,rating,description}=req.body;
-    if(!req.file){
-        return res.status(422).send('No image provided');
+exports.postAddHome=async(req,res,next)=>{
+    try {
+        const {houseName,price,location,rating,description}=req.body;
+        if(!req.file){
+            return res.status(422).send('No image provided');
+        }
+        const uploadedImage = await uploadImage(
+            'airbnb_clone',
+            req.file.path
+        );
+        // Delete local image file after Cloudinary upload
+        fs.unlink(req.file.path, (err) => {
+            if (err) console.error('Error deleting local image:', err);
+        });
+        const home = new Home({
+            houseName,
+            price,
+            location,
+            rating,
+            description,
+            photo: {
+                url: uploadedImage.secure_url,
+                public_id: uploadedImage.public_id
+            }
+        });
+        home.save().then(()=>{
+            res.redirect('/host/host-home-list');
+        }).catch((err)=>{
+            console.error('Error saving home:', err);
+            res.status(500).send('Error saving home');
+        });
+    } catch (error) {
+        console.error('Error in postAddHome:', error);
+        res.status(500).send(error.message);
     }
-    const photo= `/uploads/${req.file.filename}`;
-    const home = new Home({
-        houseName,
-        price,
-        location,
-        rating,
-        description,
-        photo
-    });
-    home.save().then(()=>{
-        res.redirect('/host/host-home-list');
-    });
 };
-exports.postEditHome=(req,res,next)=>{
-    const {id , houseName,price,location,rating,description}=req.body;
-    Home.findById(id).then((home)=>{
+exports.postEditHome=async(req,res,next)=>{
+    try {
+        const {id , houseName,price,location,rating,description}=req.body;
+    Home.findById(id).then(async(home)=>{
         if(!home){
             return res.redirect('/host/host-home-list');
         }
@@ -71,7 +91,6 @@ exports.postEditHome=(req,res,next)=>{
         home.rating=rating;
         home.description=description;
         if(req.file){
-            // Delete old photo if exists
             if(home.photo){
                 const filename = home.photo.split('/').pop();
                 const oldPhotoPath = path.join(__dirname, '..', '..', 'frontend', 'public', 'images', filename);
@@ -79,15 +98,34 @@ exports.postEditHome=(req,res,next)=>{
                     if(err) console.log('Error while deleting the photo',err);
                 });
             }
-            home.photo=`/uploads/${req.file.filename}`;
+            const uploadedImage = await uploadImage(
+                "airbnb_clone",
+                req.file.path
+            );
+            // Delete local image file after Cloudinary upload
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Error deleting local image:', err);
+            });
+            home.photo = {
+                url: uploadedImage.secure_url,
+                public_id: uploadedImage.public_id
+            };
         };
         home.save().then((result)=>{
             console.log('Home Updated Successfully',result);
             res.redirect('/host/host-home-list');
         }).catch((err)=>{
-            console.log('Error while updating the home',err);   
+            console.error('Error updating home:', err);
+            res.status(500).send('Error updating home');
         });
-    });
+        }).catch((err)=>{
+            console.error('Error finding home:', err);
+            res.status(500).send('Error finding home');
+        });
+    } catch (error) {
+        console.error('Error in postEditHome:', error);
+        res.status(500).send(error.message);
+    }
 };
 exports.postDeleteHome=(req,res,next)=>{
     const homeId=req.params.homeId;
